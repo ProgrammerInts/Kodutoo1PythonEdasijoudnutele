@@ -1,66 +1,57 @@
-import csv
-import sqlite3
-from flask import Flask
+from flask import Flask, render_template, request, redirect, url_for
+import requests
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
+API_URL = "http://127.0.0.1:5000/kohvikud"
 
-def get_db_connection():
-    connection = sqlite3.connect('KOHVIKUD.db')
-    return connection
+@app.route('/')
+def index():
+    response = requests.get(API_URL)
+    kohvikud = response.json() if response.status_code == 200 else []
+    return render_template('index.html', kohvikud=kohvikud)
 
-def create_db_table():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
 
-        drop_table = "DROP TABLE IF EXISTS SOOKLA"
+@app.route('/filter', methods=['POST'])
+def filter_kohvikud():
+    open_time = request.form.get('open_time')
+    close_time = request.form.get('close_time')
 
-        create_table = """
-        CREATE TABLE SOOKLA(
-        ID INTEGER PRIMARY KEY AUTOINCREMENT,
-        NAME TEXT NOT NULL,
-        LOCATION TEXT NOT NULL,
-        PROVIDER TEXT NOT NULL,
-        time_open TEXT NOT NULL,
-        time_closed TEXT NOT NULL);"""
+    if not open_time or not close_time:
+        return redirect(url_for('index'))
 
-        cursor.execute(drop_table)
-        cursor.execute(create_table)
-        conn.commit()
-        print("DB KOHVIKUD ja tabel 'SOOKLA' loodud.")
+    response = requests.get(f"{API_URL}/avamisaeg?start={open_time}&end={close_time}")
+    kohvikud = response.json() if response.status_code == 200 else []
 
-    except sqlite3.Error as e:
-        print(f"Tabeli loomine ebaõnnestus: {e}")
+    return render_template('index.html', kohvikud=kohvikud)
 
-    finally:
-        conn.close()
+@app.route('/add', methods=['POST'])
+def add_kohvik():
+    data = {
+        "name": request.form['name'],
+        "location": request.form['location'],
+        "provider": request.form['provider'],
+        "time_open": request.form['time_open'],
+        "time_closed": request.form['time_closed']
+    }
+    requests.post(API_URL, json=data)
+    return redirect(url_for('index'))
 
-def insert_data_from_csv():
-    try:
-        conn = get_db_connection()
-        cursor = conn.cursor()
+@app.route('/update/<int:cafe_id>', methods=['POST'])
+def update_kohvik(cafe_id):
+    data = {
+        "name": request.form['name'],
+        "location": request.form['location'],
+        "provider": request.form['provider'],
+        "time_open": request.form['time_open'],
+        "time_closed": request.form['time_closed']
+    }
+    requests.put(f"{API_URL}/{cafe_id}", json=data)
+    return redirect(url_for('index'))
 
-        csv_file = "Kohvikud.csv"
-
-        with open(csv_file, mode="r", encoding="utf-8") as file:
-            reader = csv.reader(file)
-
-            for row in reader:
-                name, location, provider, time_open, time_closed = row
-
-                cursor.execute("""
-                    INSERT INTO SOOKLA (NAME, LOCATION, PROVIDER, time_open, time_closed) 
-                    VALUES (?, ?, ?, ?, ?)""", (name, location, provider, time_open, time_closed))
-
-        conn.commit()
-        print("CSV andmed lisatud tabelisse SOOKLA!")
-
-    except sqlite3.Error as e:
-        print(f"Viga andmete lisamisel: {e}")
-
-    finally:
-        conn.close()
+@app.route('/delete/<int:cafe_id>', methods=['POST'])
+def delete_kohvik(cafe_id):
+    requests.delete(f"{API_URL}/{cafe_id}")
+    return redirect(url_for('index'))
 
 if __name__ == '__main__':
-    create_db_table()
-    insert_data_from_csv()
+    app.run(debug=True, port=5001)

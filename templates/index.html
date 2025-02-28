@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kohvikud TalTechis</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 5px; text-align: left; }
+        th { background-color: #f4f4f4; }
+        .actions { text-align: center; white-space: nowrap; }
+        button, input { font-size: 14px; padding: 5px; margin: 2px; }
+        #updateForm { display: none; margin-top: 10px; padding: 10px; border: 1px solid #ddd; background: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>Kohvikud TalTechis</h1>
+
+    <h2>Filtreeri kohvikuid</h2>
+    <form action="/filter" method="post">
+    <label for="open_time">Avamisaeg:</label>
+    <input type="time" name="open_time" id="open_time">
+
+    <label for="close_time">Sulgemisaeg:</label>
+    <input type="time" name="close_time" id="close_time">
+
+    <button type="submit">Filtreeri</button>
+    </form>
+    <p1>Tulemuse saamiseks täida mõlemad lahtrid</p1><br>
+    <p1>Filtri puhastamiseks vajuta filtreeri nuppu uuesti</p1>
+
+    <div id="updateForm">
+        <h2>Muuda kohvikut</h2>
+        <form id="updateCafeForm" method="post">
+            <input type="hidden" name="cafe_id" id="cafe_id">
+            <input type="text" name="name" id="name" required placeholder="Nimi">
+            <input type="text" name="location" id="location" required placeholder="Asukoht">
+            <input type="text" name="provider" id="provider" required placeholder="Teenusepakkuja">
+            <input type="time" name="time_open" id="time_open" required>
+            <input type="time" name="time_closed" id="time_closed" required>
+            <button type="submit">Uuenda</button>
+            <button type="button" onclick="hideUpdateForm()">Tühista</button>
+        </form>
+    </div>
+
+    <h2>Kohvikute nimekiri</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Nr</th>
+                <th>Nimi</th>
+                <th>Asukoht</th>
+                <th>Teenusepakkuja</th>
+                <th>Avamisaeg</th>
+                <th>Sulgemisaeg</th>
+                <th class="actions">Tegevused</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for kohvik in kohvikud %}
+                <tr>
+                    <td>{{ kohvik.ID  }}</td>
+                    <td>{{ kohvik.NAME }}</td>
+                    <td>{{ kohvik.LOCATION }}</td>
+                    <td>{{ kohvik.PROVIDER }}</td>
+                    <td>{{ kohvik.time_open }}</td>
+                    <td>{{ kohvik.time_closed }}</td>
+                    <td class="actions">
+                        <form action="/delete/{{ kohvik.ID }}" method="post" style="display:inline;">
+                            <button type="submit">Kustuta</button>
+                        </form>
+                        <button onclick="showUpdateForm('{{ kohvik.ID }}', '{{ kohvik.NAME }}', '{{ kohvik.LOCATION }}', '{{ kohvik.PROVIDER }}', '{{ kohvik.time_open }}', '{{ kohvik.time_closed }}')">Muuda</button>
+                    </td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <h2>Lisa uus kohvik</h2>
+    <form action="/add" method="post">
+        <input type="text" name="name" placeholder="Nimi" required>
+        <input type="text" name="location" placeholder="Asukoht" required>
+        <input type="text" name="provider" placeholder="Teenusepakkuja" required>
+        <input type="time" name="time_open" required>
+        <input type="time" name="time_closed" required>
+        <button type="submit">Lisa</button>
+    </form>
+
+    <script>
+        function showUpdateForm(id, name, location, provider, open, close) {
+            document.getElementById("updateForm").style.display = "block";
+            document.getElementById("cafe_id").value = id;
+            document.getElementById("name").value = name;
+            document.getElementById("location").value = location;
+            document.getElementById("provider").value = provider;
+            document.getElementById("time_open").value = open;
+            document.getElementById("time_closed").value = close;
+            document.getElementById("updateCafeForm").action = "/update/" + id
+
+            document.getElementById("updateForm").scrollIntoView({behavior: "smooth"});
+        }
+
+        function hideUpdateForm() {
+            document.getElementById("updateForm").style.display = "none";
+        }
+    </script>
+</body>
+</html>
